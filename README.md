@@ -48,6 +48,9 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 
 # 🛠 Implementation
 ## Scenario
+### 시나리오 1 - 무인 택시 호출
+(사진)
+### 시나리오 2 - 무인 택시 주행
 (사진)
 
 # 🎥 Demonstration Video
