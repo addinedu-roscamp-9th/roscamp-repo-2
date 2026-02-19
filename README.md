@@ -38,16 +38,28 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 <img width="731" height="977" alt="Sequence Diagram drawio" src="https://github.com/user-attachments/assets/575bb211-2587-48b7-a670-fb83f7f0b442" />
 <img width="941" height="1109" alt="Sequence Diagram-Charge Motion drawio" src="https://github.com/user-attachments/assets/3e3c8390-af26-4ebc-a2c0-52b4f7e6fdc1" />
 ## Map
+
+
+
+
 # 🛠 Implementation
 ## Scenario
 ### 시나리오 1 - 무인 택시 호출
-(사진)
+<img src="images/gui.png" alt="GUI" width="800" />
+<img src="images/wngod.png" alt="GUI" width="800" />
+
 ### 시나리오 2 - 무인 택시 주행
 (사진)
 ### 시나리오 3 - 로봇팔 충전 
+
+
 # 🎥 Demonstration Video
 ## 영상 제목
 (영상)
+
+
 # 📅 Project Schedule
 Project Period: 2025.12.29~2026.02.27
+
+
 (Jira 스케쥴)
