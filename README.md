@@ -49,12 +49,14 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 # 🛠 Implementation
 ## Scenario
 ### 시나리오 1 - 무인 택시 호출
-![시나리오 1 무인 택시 호출](https://github.com/user-attachments/assets/5df4575f-48b7-4aff-aede-4ae92fa5c9e9)
+![시나리오 1 호출](https://github.com/user-attachments/assets/3883a51b-1379-436a-a064-79145245c792)
 <img src="images/gui.png" alt="GUI" width="800" />
 <img src="images/wngod.png" alt="GUI" width="800" />
 
 ### 시나리오 2 - 무인 택시 주행
-(사진)
+![시나리오 2 주행](https://github.com/user-attachments/assets/e0103423-531c-4a1d-9bd8-88ff34d97043)
+
+
 ### 시나리오 3 - 로봇팔 충전 
 
 
