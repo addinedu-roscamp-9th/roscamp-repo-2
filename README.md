@@ -2,7 +2,7 @@
 ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소. ROS2 기반 자율 시스템 무인 택시 충전·운영 통합 플랫폼 (AutoServe)
 <img width="1080" height="1080" alt="로고" src="https://github.com/user-attachments/assets/92fddc97-94ce-4efc-8d83-4f9b04b3f1e3" />
 
-
+<h2 align="center">🚖 TASHO</h2>
 **🚖 TASHO**
 2-PRO 팀이 개발한, AI 기반 자율 시스템 무인 택시 충전·운영 통합 시스템입니다.
 # 📌 프로젝트 개요 (Project Scenario)
