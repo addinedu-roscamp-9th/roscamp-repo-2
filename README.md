@@ -30,13 +30,17 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 # 📁 시스템 구성 (System Architecture)
 ## Hardware Architecture
 <img width="1446" height="1151" alt="HW Architecture drawio" src="https://github.com/user-attachments/assets/53291e35-87c6-42cc-9eae-699798a74f67" />
+
 ## Software Architecture
 <img width="1579" height="1039" alt="Software Architecture drawio (1)" src="https://github.com/user-attachments/assets/b4b87e09-612a-45dc-ab7c-a0fc8aa9a1fd" />
+
 ## System Architecture
 <img width="1571" height="1053" alt="Software Architecture drawio" src="https://github.com/user-attachments/assets/f3425962-177e-414b-9d93-51427299ffd9" />
+
 ## Sequence Diagram
 <img width="731" height="977" alt="Sequence Diagram drawio" src="https://github.com/user-attachments/assets/575bb211-2587-48b7-a670-fb83f7f0b442" />
 <img width="941" height="1109" alt="Sequence Diagram-Charge Motion drawio" src="https://github.com/user-attachments/assets/3e3c8390-af26-4ebc-a2c0-52b4f7e6fdc1" />
+
 ## Map
 
 
