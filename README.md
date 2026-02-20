@@ -59,6 +59,7 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 
 ### 시나리오 3 - 로봇팔 충전 
 **조건:** 배터리 ≤ 30%
+![시나리오 3 로봇팔 충전](https://github.com/user-attachments/assets/0390a252-9746-4ba2-ac99-fc3be3f6aa96)
 
 
 # 🎥 Demonstration Video
