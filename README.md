@@ -45,7 +45,7 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 <img width="1571" height="1053" alt="Software Architecture drawio" src="https://github.com/user-attachments/assets/f3425962-177e-414b-9d93-51427299ffd9" />
 
 ## Sequence Diagram
-<img width="731" height="977" alt="Sequence Diagram drawio" src="https://github.com/user-attachments/assets/575bb211-2587-48b7-a670-fb83f7f0b442" />
+<img width="735" height="960" alt="무인택시운행 drawio" src="https://github.com/user-attachments/assets/579fe168-b0d9-44d6-97bb-ceb087fd59a7" />
 <img width="941" height="1109" alt="Sequence Diagram-Charge Motion drawio" src="https://github.com/user-attachments/assets/3e3c8390-af26-4ebc-a2c0-52b4f7e6fdc1" />
 
 ## Map
