@@ -35,6 +35,10 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 - **Configuration Management**: Github, Jira, Confluence, Slack
 
 # 📁 시스템 구성 (System Architecture)
+
+## Structural Diagram
+<img width="804" height="352" alt="구조도 drawio" src="https://github.com/user-attachments/assets/21cdb1ea-ed1f-41e9-b1f9-717c0325d4e1" />
+
 ## Hardware Architecture
 <img width="1446" height="1151" alt="HW Architecture drawio" src="https://github.com/user-attachments/assets/53291e35-87c6-42cc-9eae-699798a74f67" />
 
