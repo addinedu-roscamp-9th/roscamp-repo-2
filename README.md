@@ -80,7 +80,3 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 (영상)
 
 
-# 📅 Project Schedule
-Project Period: 2025.12.29~2026.02.27
-
-(Jira 스케쥴)
