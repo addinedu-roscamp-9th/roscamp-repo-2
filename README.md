@@ -18,12 +18,12 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 # 👥 팀 구성 및 역할 (Team Roles)
 |        | NAME | JOB |
 |:------:|:----:|:----:|
-| Leader  | 조건희 | Project manager, Pinky localization |
+| Leader  | 조건희 | Project manager, Pinky |
 | Worker   | 김다준 | Admin, User GUI |
 | Worker   | 박건우 | Pinky Yolo,GUI monitoring |
-| Worker   | 정현준 | Jetcobot |
+| Worker   | 정현준 | Jetcobot, Yolo |
 | Worker   | 최원준 | DB,Main Server |
-| Worker   | 함주현 | HSV Detection, 문서 작성, PPT 제작, |
+| Worker   | 함주현 | HSV Detection, 문서 작성, PPT 제작 |
 # ⚙️ 기술 스택 (Tech Stack)
 - **Hardware Platform**:Raspberry Pi(PinkyBot, Jetcobot)
 - **Development Environment**: Ubuntu(24.04) ROS2(Jazzy), OpenCV, YOLOv8, PyQt
