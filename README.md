@@ -18,10 +18,10 @@ ROS2와 AI를 활용한 자율주행 로봇개발자 부트캠프 2팀 저장소
 # 👥 팀 구성 및 역할 (Team Roles)
 |        | NAME | JOB |
 |:------:|:----:|:----:|
-| Leader  | 조건희 | Pinky localization, GUI|
-| Worker   | 김다준 | 관리자 GUI |
+| Leader  | 조건희 | Project manager, Pinky localization |
+| Worker   | 김다준 | Admin, User GUI |
 | Worker   | 박건우 | Pinky Yolo,GUI monitoring |
-| Worker   | 정현준 | Jetcobot Yolo |
+| Worker   | 정현준 | Jetcobot |
 | Worker   | 최원준 | DB,Main Server |
 | Worker   | 함주현 | HSV Detection, 문서 작성, PPT 제작, |
 # ⚙️ 기술 스택 (Tech Stack)
