@@ -1,0 +1,71 @@
+**무조건 환경변수 패키지 가이드부터 보고올 것.**
+각 로봇 터미널 코드에서 실행 전 수정할 것. (본인 PC IP만 수정하면 됨.)
+관제 PC IP:192.168.1.xx
+UDP 포트
+- 63fb -> 5000
+- 15e2 -> 5001
+- jetcobot 둘 중 하나 선택. -> 5002
+-------------------------------------------------------------------------------------------------------------
+핑키 #1 포트: 5000
+
+libcamera-vid -t 0 \
+  --width 640 --height 360 --framerate 30 \
+  --codec h264 --profile baseline \
+  --inline --intra 15 \
+  --bitrate 650000 \
+  --nopreview --rotation 180 \
+  --libav-format h264 -o - | \
+gst-launch-1.0 -v fdsrc do-timestamp=true ! \
+  h264parse config-interval=-1 ! \
+  rtph264pay config-interval=1 pt=96 mtu=1200 ! \
+  udpsink host=192.168.1.8 port=5000 sync=false
+
+핑키 #2 포트: 5001
+
+libcamera-vid -t 0 \
+  --width 640 --height 360 --framerate 30 \
+  --codec h264 --profile baseline \
+  --inline --intra 15 \
+  --bitrate 650000 \
+  --nopreview --rotation 180 \
+  --libav-format h264 -o - | \
+gst-launch-1.0 -v fdsrc do-timestamp=true ! \
+  h264parse config-interval=-1 ! \
+  rtph264pay config-interval=1 pt=96 mtu=1200 ! \
+  udpsink host=192.168.1.8 port=5001 sync=false
+----------------------------------------------------------------------------------------------------------------
+
+로봇팔 포트: 5002
+
+gst-launch-1.0 -v \
+  v4l2src device=/dev/video0 ! \
+  video/x-raw,width=640,height=480,framerate=30/1 ! \
+  videoconvert ! \
+  x264enc tune=zerolatency bitrate=1200 speed-preset=ultrafast key-int-max=20 ! \
+  h264parse ! \
+  rtph264pay config-interval=1 pt=96 ! \
+  udpsink host=192.168.1.8 port=5002 sync=false
+----------------------------------------------------------------------------------------------------------------
+
+관제 PC(본인) 
+
+FastAPI 서버 키는 코드. 가상환경 = smvenvs
+python -m uvicorn fastapi_server:app   --host 0.0.0.0   --port 8000   --log-level warning
+
+DB 스키마 적용 코드
+sudo mysql service start
+28957
+
+sudo mysql -u root -p
+28957
+
+use Tasho_server
+
+
+관리자 GUI (mvenves)
+source ~/mvenvs/admin_env/bin/activate
+cd ~/Documents/admin_app
+python3 run_admin.py
+
+
+

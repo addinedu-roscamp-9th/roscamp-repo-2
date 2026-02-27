@@ -1,0 +1,336 @@
+# admin_app/pages/status_page.py
+from __future__ import annotations
+
+import json
+import time
+from datetime import datetime
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
+
+from PyQt6 import uic
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import (
+    QWidget,
+    QLabel,
+    QTableWidget,
+    QHeaderView,
+    QAbstractItemView,
+    QProgressBar,
+)
+
+from ..utils.paths import ui_path
+
+
+# FastAPI 서버 주소 (GUI는 "클라이언트"임)
+FASTAPI_BASE = "http://192.168.1.8:8000"
+
+ARM_STATE_URL = f"{FASTAPI_BASE}/api/arm/state"
+PINKY_STATE_URL = f"{FASTAPI_BASE}/api/pinky/state"
+# (legacy) per-robot urls removed; use POST with robot_id
+
+
+ONLINE_THRESHOLD_SEC = 3.0  # updated_at 기준 3초 이내면 ONLINE
+
+
+def _http_get_json(url: str, timeout_s: float = 0.8) -> dict | None:
+    try:
+        req = Request(url, method="GET")
+        with urlopen(req, timeout=timeout_s) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return json.loads(raw) if raw else {}
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+        return None
+
+
+
+def _http_post_json(url: str, payload: dict, timeout_s: float = 0.8) -> dict | None:
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = Request(url, data=data, method="POST")
+        req.add_header("Content-Type", "application/json")
+        with urlopen(req, timeout=timeout_s) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return json.loads(raw) if raw else {}
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+        return None
+
+def _parse_iso_dt(s: str) -> float | None:
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(s)  # 'YYYY-MM-DDTHH:MM:SS(.ffffff)'
+        return dt.timestamp()
+    except Exception:
+        return None
+
+
+def _online_from_updated_at(updated_at_iso: str | None) -> bool:
+    ts = _parse_iso_dt(updated_at_iso or "")
+    if ts is None:
+        return False
+    return (time.time() - ts) <= ONLINE_THRESHOLD_SEC
+
+def _fetch_pinky_state(robot_id: str) -> dict | None:
+    # 1) try legacy GET (some servers allow)
+    d = _http_get_json(f"{PINKY_STATE_URL}?robot_id={robot_id}")
+    if d:
+        return d
+
+    # 2) try POST with common payload keys
+    d = _http_post_json(PINKY_STATE_URL, {"robot_id": robot_id})
+    if d:
+        return d
+
+    d = _http_post_json(PINKY_STATE_URL, {"id": robot_id})
+    if d:
+        return d
+
+    return None
+
+
+
+def _to_f(v):
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+class StatusPage(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi(ui_path("Admin_STATUS.ui"), self)
+
+        # ---- UI refs (ARM) ----
+        self._lbl_detect: QLabel | None = self.findChild(QLabel, "lbl_arm_detect_val")
+        if self._lbl_detect is None:
+            raise RuntimeError("[STATUS] lbl_arm_detect_val 를 찾지 못했습니다.")
+
+        self._tbl_timeline: QTableWidget | None = self.findChild(QTableWidget, "table_timeline")
+
+        # ---- UI refs (PINKY cards) ----
+        self._cars = {
+            1: {
+                "conn": self.findChild(QLabel, "lbl_car1_conn"),
+                "batt": self.findChild(QProgressBar, "bar_car1_batt"),
+                "fsm": self.findChild(QLabel, "lbl_car1_fsm_val"),
+                "pose": self.findChild(QLabel, "lbl_car1_pose_val"),
+                "goal": self.findChild(QLabel, "lbl_car1_goal_val"),
+                "speed": self.findChild(QLabel, "lbl_car1_speed_val"),
+                "warn": self.findChild(QLabel, "lbl_car1_warn"),
+            },
+            2: {
+                "conn": self.findChild(QLabel, "lbl_car2_conn"),
+                "batt": self.findChild(QProgressBar, "bar_car2_batt"),
+                "fsm": self.findChild(QLabel, "lbl_car2_fsm_val"),
+                "pose": self.findChild(QLabel, "lbl_car2_pose_val"),
+                "goal": self.findChild(QLabel, "lbl_car2_goal_val"),
+                "speed": self.findChild(QLabel, "lbl_car2_speed_val"),
+                "warn": self.findChild(QLabel, "lbl_car2_warn"),
+            },
+        }
+        self._validate_car_widgets()
+
+        # ---- state ----
+        self._last_external_update_ts = 0.0  # main_window에서 set_arm_detection 호출한 시각
+
+        # ---- style apply ----
+        self._apply_dark_table_style()
+
+        # ---- initial UI ----
+        self.set_arm_detection(False, from_external=False)
+        self._apply_pinky_state(None, which=1)
+        self._apply_pinky_state(None, which=2)
+
+        # ---- polling timer ----
+        self._timer = QTimer(self)
+        self._timer.setInterval(800)
+        self._timer.timeout.connect(self._poll_all_states)
+        self._timer.start()
+
+    def _validate_car_widgets(self):
+        missing = []
+        for which, car in self._cars.items():
+            for k, w in car.items():
+                if w is None:
+                    missing.append(f"car{which}.{k}")
+        if missing:
+            raise RuntimeError(f"[STATUS] UI 위젯 objectName 누락/오타: {', '.join(missing)}")
+
+    # =========================
+    # UI styling
+    # =========================
+    def _apply_dark_table_style(self):
+        if self._tbl_timeline is None:
+            return
+
+        t = self._tbl_timeline
+        t.setShowGrid(False)
+        t.setAlternatingRowColors(False)
+        t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        vh = t.verticalHeader()
+        vh.setVisible(False)
+        vh.setDefaultSectionSize(30)
+
+        hh = t.horizontalHeader()
+        hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        hh.setSectionsMovable(False)
+        hh.setStretchLastSection(True)
+        t.setCornerButtonEnabled(False)
+
+        t.setStyleSheet(
+            """
+            QTableWidget {
+                background-color: #0B0B0B;
+                color: #EAEAEA;
+                border: none;
+                gridline-color: transparent;
+                outline: 0;
+                selection-background-color: #1A1A1A;
+                selection-color: #FFFFFF;
+            }
+            QTableWidget::item {
+                background-color: #0F0F0F;
+                padding: 4px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background-color: #222222;
+                color: #FFFFFF;
+            }
+            QHeaderView::section {
+                background-color: #0F0F0F;
+                color: #BFBFBF;
+                border: none;
+                padding: 6px;
+            }
+            QTableCornerButton::section {
+                background-color: #0F0F0F;
+                border: none;
+            }
+            """
+        )
+
+    # =========================
+    # Polling (server -> GUI)
+    # =========================
+    def _poll_all_states(self):
+        # 1) ARM (기존 보호 로직 유지)
+        if time.time() - self._last_external_update_ts >= 2.0:
+            data_arm = _http_get_json(ARM_STATE_URL)
+            if data_arm:
+                detected = bool(data_arm.get("detected", False))
+                self.set_arm_detection(detected, from_external=False)
+
+        # 2) PINKY1
+        data_p1 = _fetch_pinky_state('pinky1')
+        self._apply_pinky_state(data_p1, which=1)
+
+        # 3) PINKY2
+        data_p2 = _fetch_pinky_state('pinky2')
+        self._apply_pinky_state(data_p2, which=2)
+
+    def _apply_pinky_state(self, data: dict | None, which: int):
+        car = self._cars.get(which)
+        if not car:
+            return
+
+        conn: QLabel = car["conn"]
+        batt: QProgressBar = car["batt"]
+        fsm_lbl: QLabel = car["fsm"]
+        pose_lbl: QLabel = car["pose"]
+        goal_lbl: QLabel = car["goal"]
+        speed_lbl: QLabel = car["speed"]
+        warn_lbl: QLabel = car["warn"]
+
+        # ---------- OFFLINE / 실패 ----------
+        if not data or not data.get("ok"):
+            conn.setText("OFFLINE")
+            conn.setStyleSheet("color:#FF4D4D; font-weight:bold;")
+            fsm_lbl.setText("--")
+            pose_lbl.setText("(--, --, --)")
+            goal_lbl.setText("--")
+            speed_lbl.setText("0.00 m/s")
+            warn_lbl.setText("WARN: --")
+            warn_lbl.setStyleSheet("color:#AAAAAA;")
+            return
+
+        st = data.get("state") or {}
+
+        # ---------- ONLINE 판정 ----------
+        updated_at = st.get('updated_at') or data.get('updated_at')
+        if not updated_at:
+            conn.setText('OK')
+            conn.setStyleSheet('color:#FFD166; font-weight:bold;')  # no timestamp
+        else:
+            online = _online_from_updated_at(updated_at)
+            if online:
+                conn.setText('OK')
+                conn.setStyleSheet('color:#6EEB83; font-weight:bold;')
+            else:
+                conn.setText('STALE')
+                conn.setStyleSheet('color:#FFD166; font-weight:bold;')
+
+        # ---------- FSM ----------
+        fsm_state = str(st.get("fsm_state", "--"))
+        fsm_lbl.setText(fsm_state)
+
+        # ---------- POSE ----------
+        px = _to_f(st.get("pose_x"))
+        py = _to_f(st.get("pose_y"))
+        pyaw = _to_f(st.get("pose_yaw"))
+        if px is not None and py is not None and pyaw is not None:
+            pose_lbl.setText(f"({px:.2f}, {py:.2f}, {pyaw:.2f})")
+        else:
+            pose_lbl.setText("(--, --, --)")
+
+        # ---------- GOAL ----------
+        gx = _to_f(st.get("goal_x"))
+        gy = _to_f(st.get("goal_y"))
+        gyaw = _to_f(st.get("goal_yaw"))
+        if gx is not None and gy is not None:
+            if gyaw is not None:
+                goal_lbl.setText(f"({gx:.2f}, {gy:.2f}, {gyaw:.2f})")
+            else:
+                goal_lbl.setText(f"({gx:.2f}, {gy:.2f})")
+        else:
+            goal_lbl.setText("--")
+
+        # ---------- SPEED (서버 값 없음: placeholder) ----------
+        speed_lbl.setText("0.00 m/s")
+
+        # ---------- BATTERY ----------
+        b = _to_f(st.get('battery_pct'))
+        if b is None:
+            batt.setValue(0)
+            batt.setFormat('BATTERY --%')
+        else:
+            b_i = max(0, min(100, int(round(b))))
+            batt.setValue(b_i)
+            batt.setFormat(f'BATTERY {b_i}%')
+
+        # ---------- WARN ----------
+        if fsm_state.upper() == "ERROR" or str(st.get("docking_state", "")).upper() == "FAILED":
+            warn_lbl.setText("WARN: ERROR")
+            warn_lbl.setStyleSheet("color:#FF4D4D; font-weight:bold;")
+        else:
+            warn_lbl.setText("WARN: --")
+            warn_lbl.setStyleSheet("color:#AAAAAA;")
+
+    # =========================
+    # Public API (main_window가 호출)
+    # =========================
+    def set_arm_detection(self, detected: bool, from_external: bool = True):
+        detected = bool(detected)
+        if from_external:
+            self._last_external_update_ts = time.time()
+
+        if detected:
+            self._lbl_detect.setText("DETECTED")
+            self._lbl_detect.setStyleSheet("color:#6EEB83; font-weight:bold; font-size:10pt;")
+        else:
+            self._lbl_detect.setText("UNDETECTED")
+            self._lbl_detect.setStyleSheet("color:#FF4D4D; font-weight:bold; font-size:10pt;")

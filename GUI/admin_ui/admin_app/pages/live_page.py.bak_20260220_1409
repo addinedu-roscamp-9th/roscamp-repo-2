@@ -1,0 +1,444 @@
+# admin_app/pages/live_page.py
+# REMASTER v2 (LOW-LATENCY / NO-YOLO / NO-ARUCO):
+# - ✅ 초저지연 목표: LivePage에서 YOLO/ARUCO 완전 제거 (표시는 "수신 프레임 그대로"만)
+# - UI: right side uses QStackedWidget for 3cams / global-big
+# - Toggle (hotkey 3): swap_3cams_with_global() OFF<->ON (name kept)
+# - OFF: left=GLOBAL, right=CAR1/CAR2/ARM
+# - ON : left=3cams(실제 QLabel 이동), right=GLOBAL(big)
+# - FPS overlay per view (incoming counts):
+#   * GLOBAL: cap.read() success count
+#   * cam1/cam2/arm: GstReceiver.frame signal count
+#
+# 추가 수정 포인트:
+# - ✅ 토글 후 "잔상" 방지: 글로벌 프레임 없으면 clear()+텍스트로 초기화
+# - ✅ 첫 토글 레이아웃 깨짐 방지: move 후 geometry 업데이트 + repaint 강제
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+
+import cv2
+import numpy as np
+from PyQt6 import uic
+from PyQt6.QtWidgets import QWidget, QLabel, QStackedWidget, QGridLayout
+from PyQt6.QtCore import QTimer, pyqtSignal, QThreadPool
+from PyQt6.QtCore import Qt, QEvent, QObject
+
+from ..utils.paths import ui_path
+from ..workers.gst_receiver import GstReceiver
+from .live_render import show_frame
+from .aspect_label import AspectRatioLabel
+
+
+@dataclass
+class _FpsMeter:
+    count: int = 0
+    last_t: float = 0.0
+    fps: float = 0.0
+
+    def tick(self, now: float) -> None:
+        self.count += 1
+        if self.last_t <= 0.0:
+            self.last_t = now
+            return
+        dt = now - self.last_t
+        if dt >= 0.5:
+            self.fps = self.count / dt
+            self.count = 0
+            self.last_t = now
+
+
+class _OverlayManager(QObject):
+    """
+    parent_label(QLabel) 위에 자식 QLabel(오버레이)을 붙여서 하단에 텍스트(FPS 등) 표시.
+    - parent resize 시 오버레이 자동 하단 정렬
+    - 오버레이는 마우스 이벤트 통과
+    """
+
+    def __init__(self, parent_label: QLabel, text: str = "FPS: --"):
+        super().__init__(parent_label)
+        self.parent_label = parent_label
+
+        ov = QLabel(parent_label)
+        ov.setObjectName(f"{parent_label.objectName()}_overlay_fps")
+        ov.setText(text)
+        ov.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+
+        ov.setStyleSheet(
+            """
+            QLabel {
+                color: #EAEAEA;
+                background-color: rgba(0,0,0,140);
+                border: 0px;
+                padding: 4px 8px;
+                font-size: 10pt;
+                font-weight: bold;
+            }
+            """
+        )
+        ov.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        ov.show()
+
+        self.overlay = ov
+        self.parent_label.installEventFilter(self)
+        self.reposition()
+
+    def eventFilter(self, obj, event):
+        if obj is self.parent_label and event.type() == QEvent.Type.Resize:
+            self.reposition()
+        return False
+
+    def reposition(self):
+        w = self.parent_label.width()
+        h = self.parent_label.height()
+        if w < 2 or h < 2:
+            return
+
+        self.overlay.setWordWrap(True)
+        self.overlay.setFixedWidth(w)
+        hint_h = self.overlay.sizeHint().height()
+        overlay_h = max(26, hint_h)
+        self.overlay.setGeometry(0, h - overlay_h, w, overlay_h)
+
+    def set_text(self, text: str):
+        try:
+            if self.overlay is None:
+                return
+            self.overlay.setText(text)
+        except RuntimeError:
+            return
+
+
+class LivePage(QWidget):
+    arm_detected_changed = pyqtSignal(bool)  # compatibility
+
+    def __init__(self):
+        super().__init__()
+        uic.loadUi(ui_path("Admin_LIVE.ui"), self)
+
+        # ---- UI refs ----
+        self.lbl_left = self.findChild(QLabel, "lbl_global_cam")  # left big
+        self.lbl_cam1 = self.findChild(QLabel, "lbl_cam_car1")
+        self.lbl_cam2 = self.findChild(QLabel, "lbl_cam_car2")
+        self.lbl_arm = self.findChild(QLabel, "lbl_cam_arm")
+
+        self.stack_right: QStackedWidget | None = self.findChild(QStackedWidget, "stack_right_cam")
+        self.lbl_right_global = self.findChild(QLabel, "lbl_cam_global_right")
+
+        if self.lbl_left is None or self.lbl_cam1 is None or self.lbl_cam2 is None or self.lbl_arm is None:
+            raise RuntimeError("[LIVE] UI QLabel objectName 누락: lbl_global_cam / lbl_cam_car1 / lbl_cam_car2 / lbl_cam_arm")
+        if self.stack_right is None or self.lbl_right_global is None:
+            raise RuntimeError("[LIVE] UI objectName 누락: stack_right_cam / lbl_cam_global_right")
+
+        self.lbl_left.setText("GLOBAL VIEW")
+        self.lbl_cam1.setText("CAR1 CAM")
+        self.lbl_cam2.setText("CAR2 CAM")
+        self.lbl_arm.setText("ARM CAM")
+        self.lbl_right_global.setText("GLOBAL VIEW")
+
+        self.pool = QThreadPool.globalInstance()
+
+        # ---- Replace LEFT+RIGHT global labels with AspectRatioLabel (keep 16:9) ----
+        self.lbl_left = self._replace_with_aspect_label("lbl_global_cam") or self.lbl_left
+        self.lbl_right_global = self._replace_with_aspect_label("lbl_cam_global_right") or self.lbl_right_global
+
+        # ---- LEFT stack: GLOBAL(label) <-> MOSAIC(container) ----
+        left_parent = self.lbl_left.parentWidget()
+        if left_parent is None or left_parent.layout() is None:
+            raise RuntimeError("[LIVE] lbl_left parent/layout missing (check UI)")
+
+        left_layout = left_parent.layout()
+        left_idx = left_layout.indexOf(self.lbl_left)
+
+        left_layout.removeWidget(self.lbl_left)
+
+        self.stack_left = QStackedWidget(left_parent)
+        self.stack_left.setObjectName("stack_left_view")
+        left_layout.insertWidget(left_idx, self.stack_left)
+
+        # page0: GLOBAL
+        self.stack_left.addWidget(self.lbl_left)
+
+        # page1: 3cams container
+        self.mosaic_container = QWidget(self.stack_left)
+        self.mosaic_container.setObjectName("mosaic_container")
+
+        mos_layout = QGridLayout(self.mosaic_container)
+        mos_layout.setSpacing(10)
+        mos_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.stack_left.addWidget(self.mosaic_container)
+        self.stack_left.setCurrentIndex(0)
+
+        # ---- 오른쪽 3cams page 레이아웃 핸들 저장 ----
+        self._layout_small_cams = self.findChild(QGridLayout, "layout_small_cams") or self.lbl_cam1.parentWidget().layout()
+        self._mos_layout = mos_layout
+        self._cams_in_left = False
+
+        # ---- Streams ----
+        self.usb_index = 0
+        self.cap_global: cv2.VideoCapture | None = None
+
+        # UNICAST receive
+        # ✅ 초저지연: jitter_latency_ms=0 (필요시 5~10만 주고 튜닝)
+        self.recv_cam1 = GstReceiver(port=6000, jitter_latency_ms=0)
+        self.recv_cam2 = GstReceiver(port=6001, jitter_latency_ms=0)
+        self.recv_arm = GstReceiver(port=5002, jitter_latency_ms=0)
+
+        self._latest_cam1: np.ndarray | None = None
+        self._latest_cam2: np.ndarray | None = None
+        self._latest_arm: np.ndarray | None = None
+
+        # ---- FPS meters ----
+        self._fps_global = _FpsMeter()
+        self._fps_cam1 = _FpsMeter()
+        self._fps_cam2 = _FpsMeter()
+        self._fps_arm = _FpsMeter()
+
+        self.recv_cam1.frame.connect(self._on_cam1_frame)
+        self.recv_cam2.frame.connect(self._on_cam2_frame)
+        self.recv_arm.frame.connect(self._on_arm_frame)
+
+        # ---- UI Mode ----
+        self._mosaic_mode = False
+
+        # ---- FPS overlays ----
+        self._ov_left = _OverlayManager(self.lbl_left, "FPS: --")
+        self._ov_cam1 = _OverlayManager(self.lbl_cam1, "FPS: --")
+        self._ov_cam2 = _OverlayManager(self.lbl_cam2, "FPS: --")
+        self._ov_arm = _OverlayManager(self.lbl_arm, "FPS: --")
+        self._ov_right_global = _OverlayManager(self.lbl_right_global, "FPS: --")
+
+        self._apply_mode_ui()
+
+        # ---- Render timer ----
+        self._streams_started = False
+
+        self.timer = QTimer(self)
+        self.timer.setInterval(33)  # 30fps UI
+        self.timer.timeout.connect(self._tick)
+        self.timer.start()
+
+    # -------------------------
+    # UI helpers
+    # -------------------------
+    def _replace_with_aspect_label(self, object_name: str) -> QLabel | None:
+        old = self.findChild(QLabel, object_name)
+        if old is None:
+            return None
+
+        parent = old.parentWidget()
+        if parent is None or parent.layout() is None:
+            return None
+
+        layout = parent.layout()
+        idx = layout.indexOf(old)
+
+        new_lbl = AspectRatioLabel(16, 9, parent)
+        new_lbl.setObjectName(old.objectName())
+        new_lbl.setText(old.text())
+        new_lbl.setAlignment(old.alignment())
+        new_lbl.setStyleSheet(old.styleSheet())
+
+        old.setObjectName(old.objectName() + "__old__pending_delete")
+
+        layout.removeWidget(old)
+        old.setParent(None)
+        old.deleteLater()
+
+        layout.insertWidget(idx, new_lbl)
+        return new_lbl
+
+    def _move_3cams(self, to_left: bool) -> None:
+        if to_left and self._cams_in_left:
+            return
+        if (not to_left) and (not self._cams_in_left):
+            return
+
+        if to_left:
+            self._layout_small_cams.removeWidget(self.lbl_cam1)
+            self._layout_small_cams.removeWidget(self.lbl_cam2)
+            self._layout_small_cams.removeWidget(self.lbl_arm)
+
+            self._mos_layout.addWidget(self.lbl_cam1, 0, 0)
+            self._mos_layout.addWidget(self.lbl_cam2, 0, 1)
+            self._mos_layout.addWidget(self.lbl_arm, 1, 0, 1, 2)
+            self._cams_in_left = True
+        else:
+            self._mos_layout.removeWidget(self.lbl_cam1)
+            self._mos_layout.removeWidget(self.lbl_cam2)
+            self._mos_layout.removeWidget(self.lbl_arm)
+
+            self._layout_small_cams.addWidget(self.lbl_cam1, 0, 0)
+            self._layout_small_cams.addWidget(self.lbl_cam2, 0, 1)
+            self._layout_small_cams.addWidget(self.lbl_arm, 1, 0, 1, 2)
+            self._cams_in_left = False
+
+        self.lbl_cam1.updateGeometry()
+        self.lbl_cam2.updateGeometry()
+        self.lbl_arm.updateGeometry()
+        self.mosaic_container.updateGeometry()
+
+        self._ov_cam1.reposition()
+        self._ov_cam2.reposition()
+        self._ov_arm.reposition()
+
+        self.mosaic_container.repaint()
+        self.repaint()
+
+    def _apply_mode_ui(self) -> None:
+        self.stack_right.setCurrentIndex(1 if self._mosaic_mode else 0)
+        self.stack_left.setCurrentIndex(1 if self._mosaic_mode else 0)
+
+        self._move_3cams(to_left=self._mosaic_mode)
+
+        if self._mosaic_mode:
+            self._ov_cam1.overlay.show()
+            self._ov_cam2.overlay.show()
+            self._ov_arm.overlay.show()
+
+            self._ov_right_global.overlay.show()
+            self._ov_left.overlay.hide()
+        else:
+            self._ov_cam1.overlay.show()
+            self._ov_cam2.overlay.show()
+            self._ov_arm.overlay.show()
+
+            self._ov_right_global.overlay.hide()
+            self._ov_left.overlay.show()
+
+        self.stack_left.updateGeometry()
+        self.stack_right.updateGeometry()
+        self.updateGeometry()
+        self.repaint()
+
+    # -------------------------
+    # Stream control
+    # -------------------------
+    def _open_global_cam(self) -> None:
+        if self.cap_global and self.cap_global.isOpened():
+            return
+
+        cap = cv2.VideoCapture(self.usb_index, cv2.CAP_V4L2)
+        if not cap.isOpened():
+            print(f"[LIVE] Global CAM open failed: /dev/video{self.usb_index}")
+            return
+
+        # ✅ USB캠 지연 줄이기: 버퍼 최소
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+        # (선택) 장치가 지원하면 더 줄어듭니다. 안 먹히면 무시됨.
+        # cap.set(cv2.CAP_PROP_FPS, 30)
+        # cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+
+        self.cap_global = cap
+
+    def _streams_on(self) -> None:
+        self._open_global_cam()
+        for r in (self.recv_cam1, self.recv_cam2, self.recv_arm):
+            if not r.isRunning():
+                r.start()
+
+    def _streams_off(self) -> None:
+        for r in (self.recv_cam1, self.recv_cam2, self.recv_arm):
+            r.stop()
+            r.wait(300)
+        if self.cap_global:
+            self.cap_global.release()
+            self.cap_global = None
+
+    # -------------------------
+    # Shortcut
+    # -------------------------
+    def swap_3cams_with_global(self) -> None:
+        print("[LIVE] hotkey 3 received")
+        self._mosaic_mode = not self._mosaic_mode
+        self._apply_mode_ui()
+        print(f"[LIVE] mosaic_mode={'ON' if self._mosaic_mode else 'OFF'}")
+
+    # -------------------------
+    # Frame receive
+    # -------------------------
+    def _on_cam1_frame(self, f: np.ndarray) -> None:
+        self._latest_cam1 = f
+        self._fps_cam1.tick(time.time())
+
+    def _on_cam2_frame(self, f: np.ndarray) -> None:
+        self._latest_cam2 = f
+        self._fps_cam2.tick(time.time())
+
+    def _on_arm_frame(self, f: np.ndarray) -> None:
+        self._latest_arm = f
+        self._fps_arm.tick(time.time())
+
+    # -------------------------
+    # Main tick
+    # -------------------------
+    def _tick(self) -> None:
+        now = time.time()
+
+        global_frame: np.ndarray | None = None
+        if self.cap_global and self.cap_global.isOpened():
+            ok, f = self.cap_global.read()
+            if ok:
+                global_frame = f
+                self._fps_global.tick(now)
+
+        cam1 = self._latest_cam1
+        cam2 = self._latest_cam2
+        arm = self._latest_arm
+
+        if not self._mosaic_mode:
+            if global_frame is not None:
+                show_frame(self.lbl_left, global_frame, mode="fit")
+            else:
+                self.lbl_left.clear()
+                self.lbl_left.setText("GLOBAL VIEW")
+
+            if cam1 is not None:
+                show_frame(self.lbl_cam1, cam1, mode="fit")
+            if cam2 is not None:
+                show_frame(self.lbl_cam2, cam2, mode="fit")
+            if arm is not None:
+                show_frame(self.lbl_arm, arm, mode="fit")
+
+            self._ov_left.set_text(f"GLOBAL FPS: {self._fps_global.fps:0.1f}")
+            self._ov_cam1.set_text(f"CAR1 FPS: {self._fps_cam1.fps:0.1f}")
+            self._ov_cam2.set_text(f"CAR2 FPS: {self._fps_cam2.fps:0.1f}")
+            self._ov_arm.set_text(f"ARM  FPS: {self._fps_arm.fps:0.1f}")
+
+        else:
+            if cam1 is not None:
+                show_frame(self.lbl_cam1, cam1, mode="fit")
+            if cam2 is not None:
+                show_frame(self.lbl_cam2, cam2, mode="fit")
+            if arm is not None:
+                show_frame(self.lbl_arm, arm, mode="fit")
+
+            if global_frame is not None:
+                show_frame(self.lbl_right_global, global_frame, mode="fit")
+            else:
+                self.lbl_right_global.clear()
+                self.lbl_right_global.setText("GLOBAL VIEW")
+
+            self._ov_cam1.set_text(f"CAR1 FPS: {self._fps_cam1.fps:0.1f}")
+            self._ov_cam2.set_text(f"CAR2 FPS: {self._fps_cam2.fps:0.1f}")
+            self._ov_arm.set_text(f"ARM  FPS: {self._fps_arm.fps:0.1f}")
+            self._ov_right_global.set_text(f"GLOBAL FPS: {self._fps_global.fps:0.1f}")
+
+    # -------------------------
+    # Qt events
+    # -------------------------
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._streams_started:
+            self._streams_on()
+            self._streams_started = True
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+
+    def closeEvent(self, event):
+        self._streams_off()
+        super().closeEvent(event)

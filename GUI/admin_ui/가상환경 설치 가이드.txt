@@ -1,0 +1,55 @@
+가상환경 설치
+mkdir -p ~/mvenvs
+python3 -m venv ~/mvenvs/admin_env --system-site-packages
+
+source ~/mvenvs/admin_env/bin/activate
+
+가상환경 안에서 패키지 설치(PyQt6, YOLO, gi/Gstreamer)
+pip install --upgrade pip
+pip install ultralytics numpy PyQt6 opencv-contrib-python
+
+sudo apt update
+sudo apt install -y \
+  python3-gi \
+  python3-gi-cairo \
+  gir1.2-gstreamer-1.0 \
+  gir1.2-gst-plugins-base-1.0 \
+  gstreamer1.0-tools \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-libav
+
+위에 코드로 설치 후
+AttributeError: module 'cv2.aruco' has no attribute 'Dictionary_get'. Did you mean: 'Dictionary'?
+위의 에러는 OpenCV ArUco API 버전 차이 때문임.
+일단은 OpenCV 패키지 충돌 정리하면 아마 해결됨. 아래 코드 실행 ㄱㄱ
+
+가상환경 안에서
+pip uninstall -y opencv-python opencv-contrib-python
+pip install opencv-contrib-python
+이래도 오류 뜨면 아래 확인 ㄱㄱ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+걍 포기하셈 ㅋㅋ 님 재능 없음.

@@ -1,0 +1,668 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1440</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Admin TIMELINE</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+        QWidget#Form { background-color: #0B0B0B; }
+        QLabel { color: #FFFFFF; }
+
+        QFrame#panel_header,
+        QFrame#panel_filter,
+        QFrame#panel_table,
+        QFrame#panel_detail {
+          background-color: #121212;
+          border: 1px solid #222222;
+          border-radius: 16px;
+        }
+
+        QLabel.title {
+          font-size: 18pt;
+          font-weight: bold;
+          color: #DDDDDD;
+        }
+
+        QLabel.subtle {
+          color: #888888;
+          font-size: 10pt;
+        }
+
+        QLineEdit, QComboBox, QDateTimeEdit {
+          background-color: #101010;
+          color: #FFFFFF;
+          border: 1px solid #2A2A2A;
+          border-radius: 10px;
+          padding: 8px 10px;
+          font-size: 11pt;
+        }
+
+        QPushButton {
+          background-color: #2D2D2D;
+          color: #FFFFFF;
+          border: 1px solid #444444;
+          border-radius: 12px;
+          padding: 10px 16px;
+          font-size: 12pt;
+          font-weight: bold;
+        }
+        QPushButton:hover { background-color: #3A3A3A; }
+        QPushButton:pressed { background-color: #1F1F1F; }
+        QPushButton:disabled { color: #888888; background-color: #1F1F1F; }
+
+        QTableWidget {
+          background-color: #101010;
+          color: #FFFFFF;
+          gridline-color: #2A2A2A;
+          border: 1px solid #2A2A2A;
+          border-radius: 12px;
+        }
+        QHeaderView::section {
+          background-color: #151515;
+          color: #DDDDDD;
+          border: 1px solid #2A2A2A;
+          padding: 6px;
+          font-weight: bold;
+        }
+
+        QTextEdit {
+          background-color: #101010;
+          color: #FFFFFF;
+          border: 1px solid #2A2A2A;
+          border-radius: 12px;
+          padding: 10px;
+          font-size: 11pt;
+        }
+      </string>
+  </property>
+  <layout class="QVBoxLayout" name="layout_root">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="panel_header">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>72</height>
+      </size>
+     </property>
+     <layout class="QHBoxLayout" name="layout_header">
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <property name="leftMargin">
+       <number>16</number>
+      </property>
+      <property name="topMargin">
+       <number>10</number>
+      </property>
+      <property name="rightMargin">
+       <number>16</number>
+      </property>
+      <property name="bottomMargin">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="lbl_title">
+        <property name="styleSheet">
+         <string notr="true">font-size: 18pt; font-weight: bold; color: #DDDDDD;</string>
+        </property>
+        <property name="text">
+         <string>ADMIN · TIMELINE</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="spacer_header_mid">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="lbl_clock">
+        <property name="styleSheet">
+         <string notr="true">color:#AAAAAA; font-size: 11pt; font-weight: bold;</string>
+        </property>
+        <property name="text">
+         <string>TIME: --:--:--</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lbl_system_health">
+        <property name="styleSheet">
+         <string notr="true">color:#6EEB83; font-size: 11pt; font-weight: bold;</string>
+        </property>
+        <property name="text">
+         <string>SYSTEM: OK</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="panel_filter">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>84</height>
+      </size>
+     </property>
+     <layout class="QHBoxLayout" name="layout_filter">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <property name="leftMargin">
+       <number>16</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>16</number>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="lbl_filter_hint">
+        <property name="styleSheet">
+         <string notr="true">font-size: 12pt; font-weight: bold; color:#DDDDDD;</string>
+        </property>
+        <property name="text">
+         <string>FILTER</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="cb_source">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>로봇/소스 필터</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>ALL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TASHOBOT-1</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TASHOBOT-2</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>CHARM</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="cb_level">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>심각도 필터</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>ALL LEVEL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>INFO</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WARN</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>ERROR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="edit_search">
+        <property name="minimumSize">
+         <size>
+          <width>360</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="placeholderText">
+         <string>검색어 (event/detail)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="spacer_filter_mid">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_apply">
+        <property name="text">
+         <string>적용</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_clear">
+        <property name="text">
+         <string>초기화</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="layout_mid">
+     <property name="spacing">
+      <number>12</number>
+     </property>
+     <item>
+      <widget class="QFrame" name="panel_table">
+       <layout class="QVBoxLayout" name="layout_table">
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <property name="leftMargin">
+         <number>14</number>
+        </property>
+        <property name="topMargin">
+         <number>12</number>
+        </property>
+        <property name="rightMargin">
+         <number>14</number>
+        </property>
+        <property name="bottomMargin">
+         <number>12</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="layout_table_header">
+          <item>
+           <widget class="QLabel" name="lbl_table_title">
+            <property name="styleSheet">
+             <string notr="true">font-size: 12pt; font-weight: bold; color:#DDDDDD;</string>
+            </property>
+            <property name="text">
+             <string>EVENT LIST</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="spacer_table_header">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="lbl_table_hint">
+            <property name="styleSheet">
+             <string notr="true">color:#888888; font-size:10pt;</string>
+            </property>
+            <property name="text">
+             <string>※ 최근 이벤트가 위에 표시됩니다.</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="table_timeline">
+          <property name="minimumSize">
+           <size>
+            <width>900</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="showGrid">
+           <bool>true</bool>
+          </property>
+          <property name="rowCount">
+           <number>18</number>
+          </property>
+          <property name="columnCount">
+           <number>5</number>
+          </property>
+          <property name="horizontalHeaderLabels" stdset="0">
+           <stringlist>
+            <string>TIME</string>
+            <string>SRC</string>
+            <string>LEVEL</string>
+            <string>EVENT</string>
+            <string>DETAIL</string>
+           </stringlist>
+          </property>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <column/>
+          <column/>
+          <column/>
+          <column/>
+          <column/>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QFrame" name="panel_detail">
+       <property name="minimumSize">
+        <size>
+         <width>420</width>
+         <height>0</height>
+        </size>
+       </property>
+       <layout class="QVBoxLayout" name="layout_detail">
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <property name="leftMargin">
+         <number>14</number>
+        </property>
+        <property name="topMargin">
+         <number>12</number>
+        </property>
+        <property name="rightMargin">
+         <number>14</number>
+        </property>
+        <property name="bottomMargin">
+         <number>12</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="lbl_detail_title">
+          <property name="styleSheet">
+           <string notr="true">font-size: 12pt; font-weight: bold; color:#DDDDDD;</string>
+          </property>
+          <property name="text">
+           <string>DETAIL</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="grid_detail_kv">
+          <property name="horizontalSpacing">
+           <number>10</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>8</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="lbl_d_time_key">
+            <property name="styleSheet">
+             <string notr="true">color:#AAAAAA; font-size:10pt;</string>
+            </property>
+            <property name="text">
+             <string>TIME</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="lbl_d_time_val">
+            <property name="styleSheet">
+             <string notr="true">font-size:10pt; font-weight:bold;</string>
+            </property>
+            <property name="text">
+             <string>--</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lbl_d_src_key">
+            <property name="styleSheet">
+             <string notr="true">color:#AAAAAA; font-size:10pt;</string>
+            </property>
+            <property name="text">
+             <string>SRC</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="lbl_d_src_val">
+            <property name="styleSheet">
+             <string notr="true">font-size:10pt; font-weight:bold;</string>
+            </property>
+            <property name="text">
+             <string>--</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="lbl_d_level_key">
+            <property name="styleSheet">
+             <string notr="true">color:#AAAAAA; font-size:10pt;</string>
+            </property>
+            <property name="text">
+             <string>LEVEL</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="lbl_d_level_val">
+            <property name="styleSheet">
+             <string notr="true">font-size:10pt; font-weight:bold;</string>
+            </property>
+            <property name="text">
+             <string>--</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="lbl_d_event_key">
+            <property name="styleSheet">
+             <string notr="true">color:#AAAAAA; font-size:10pt;</string>
+            </property>
+            <property name="text">
+             <string>EVENT</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="lbl_d_event_val">
+            <property name="styleSheet">
+             <string notr="true">font-size:10pt; font-weight:bold;</string>
+            </property>
+            <property name="text">
+             <string>--</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTextEdit" name="text_detail">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>선택한 이벤트의 상세가 여기에 표시됩니다.</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lbl_detail_hint">
+          <property name="styleSheet">
+           <string notr="true">color:#888888; font-size:10pt;</string>
+          </property>
+          <property name="text">
+           <string>※ 이 화면은 관제 전용(조작 없음)</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QFrame" name="panel_footer">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>56</height>
+      </size>
+     </property>
+     <layout class="QHBoxLayout" name="layout_footer">
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <property name="leftMargin">
+       <number>16</number>
+      </property>
+      <property name="topMargin">
+       <number>10</number>
+      </property>
+      <property name="rightMargin">
+       <number>16</number>
+      </property>
+      <property name="bottomMargin">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="lbl_footer_left">
+        <property name="styleSheet">
+         <string notr="true">color:#888888; font-size:10pt; font-weight:bold;</string>
+        </property>
+        <property name="text">
+         <string>VIEW ONLY · NO CONTROL</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="spacer_footer_mid">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="lbl_footer_right">
+        <property name="styleSheet">
+         <string notr="true">color:#888888; font-size:10pt;</string>
+        </property>
+        <property name="text">
+         <string>v0.0.1</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

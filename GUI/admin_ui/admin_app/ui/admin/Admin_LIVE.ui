@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1440</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Admin LIVE</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+        QWidget#Form { background-color: #0B0B0B; }
+        QLabel { color: #FFFFFF; }
+
+        QFrame#panel_global,
+        QFrame#panel_right,
+        QFrame#panel_3cams {
+          background-color: #121212;
+          border: 1px solid #222222;
+          border-radius: 16px;
+        }
+
+        QLabel.cam_view {
+          background-color: #000000;
+          border: 2px solid #2A2A2A;
+          border-radius: 12px;
+        }
+      </string>
+  </property>
+
+  <layout class="QHBoxLayout" name="layout_root">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
+
+   <!-- LEFT: GLOBAL BIG -->
+   <item>
+    <widget class="QFrame" name="panel_global">
+     <layout class="QVBoxLayout" name="layout_global">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <property name="leftMargin">
+       <number>14</number>
+      </property>
+      <property name="topMargin">
+       <number>14</number>
+      </property>
+      <property name="rightMargin">
+       <number>14</number>
+      </property>
+      <property name="bottomMargin">
+       <number>14</number>
+      </property>
+
+      <item>
+       <layout class="QHBoxLayout" name="layout_global_header">
+        <item>
+         <widget class="QLabel" name="lbl_global_title">
+          <property name="styleSheet">
+           <string notr="true">font-size: 13pt; font-weight: bold; color: #DDDDDD;</string>
+          </property>
+          <property name="text">
+           <string>LEFT VIEW</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="spacer_global_header">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="lbl_global_hint">
+          <property name="styleSheet">
+           <string notr="true">color:#888888; font-size:10pt;</string>
+          </property>
+          <property name="text">
+           <string>Toggle OFF: GLOBAL / Toggle ON: MOSAIC(3 cams)</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+
+      <item>
+       <widget class="QLabel" name="lbl_global_cam">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">
+                    background-color:#000000;
+                    border:2px solid #2A2A2A;
+                    border-radius:12px;
+                  </string>
+        </property>
+        <property name="text">
+         <string>LEFT VIEW</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+
+     </layout>
+    </widget>
+   </item>
+
+   <!-- RIGHT: STACK (3cams or global big) -->
+   <item>
+    <widget class="QFrame" name="panel_right">
+     <property name="minimumSize">
+      <size>
+       <width>480</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>520</width>
+       <height>16777215</height>
+      </size>
+     </property>
+
+     <layout class="QVBoxLayout" name="layout_right">
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <property name="leftMargin">
+       <number>14</number>
+      </property>
+      <property name="topMargin">
+       <number>14</number>
+      </property>
+      <property name="rightMargin">
+       <number>14</number>
+      </property>
+      <property name="bottomMargin">
+       <number>14</number>
+      </property>
+
+      <item>
+       <widget class="QFrame" name="panel_3cams">
+        <layout class="QVBoxLayout" name="layout_panel_3cams">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+
+         <item>
+          <widget class="QStackedWidget" name="stack_right_cam">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+
+           <!-- page 0: 3 cams -->
+           <widget class="QWidget" name="page_3cams">
+            <layout class="QGridLayout" name="layout_small_cams">
+             <property name="spacing">
+              <number>10</number>
+             </property>
+             <property name="leftMargin">
+              <number>14</number>
+             </property>
+             <property name="topMargin">
+              <number>14</number>
+             </property>
+             <property name="rightMargin">
+              <number>14</number>
+             </property>
+             <property name="bottomMargin">
+              <number>14</number>
+             </property>
+
+             <item row="0" column="0">
+              <widget class="QLabel" name="lbl_cam_car1">
+               <property name="minimumSize">
+                <size>
+                 <width>220</width>
+                 <height>130</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">
+                          background-color:#000000;
+                          border:2px solid #2A2A2A;
+                          border-radius:12px;
+                        </string>
+               </property>
+               <property name="text">
+                <string>CAR1 CAM</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+
+             <item row="0" column="1">
+              <widget class="QLabel" name="lbl_cam_car2">
+               <property name="minimumSize">
+                <size>
+                 <width>220</width>
+                 <height>130</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">
+                          background-color:#000000;
+                          border:2px solid #2A2A2A;
+                          border-radius:12px;
+                        </string>
+               </property>
+               <property name="text">
+                <string>CAR2 CAM</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+
+             <item row="1" column="0" colspan="2">
+              <widget class="QLabel" name="lbl_cam_arm">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>140</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">
+                          background-color:#000000;
+                          border:2px solid #2A2A2A;
+                          border-radius:12px;
+                        </string>
+               </property>
+               <property name="text">
+                <string>ARM CAM</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+
+           <!-- page 1: global big on right -->
+           <widget class="QWidget" name="page_global_right">
+            <layout class="QVBoxLayout" name="layout_right_global">
+             <property name="leftMargin">
+              <number>14</number>
+             </property>
+             <property name="topMargin">
+              <number>14</number>
+             </property>
+             <property name="rightMargin">
+              <number>14</number>
+             </property>
+             <property name="bottomMargin">
+              <number>14</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="lbl_cam_global_right">
+               <property name="styleSheet">
+                <string notr="true">
+                          background-color:#000000;
+                          border:2px solid #2A2A2A;
+                          border-radius:12px;
+                        </string>
+               </property>
+               <property name="text">
+                <string>GLOBAL (RIGHT)</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+
+          </widget>
+         </item>
+
+        </layout>
+       </widget>
+      </item>
+
+     </layout>
+    </widget>
+   </item>
+
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

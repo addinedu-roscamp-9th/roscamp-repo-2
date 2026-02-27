@@ -1,0 +1,16 @@
+Tashobot-1 (192.168.1.14) 15e2
+Domain_ID: 9
+fsm.py 킬 때
+[Pinky] - ID: 9
+python3 -u pinky_supervisor_fsm.py --ros-args -p robot_id:=pinky1 -p server_base:=http://192.168.1.8:8000
+
+
+Tashobot-2 (192.168.1.15) 63fb
+Domain_ID: 14
+fsm.py 킬 때
+[Pinky] - ID: 14
+python3 -u pinky_supervisor_fsm.py --ros-args -p robot_id:=pinky2 -p server_base:=http://192.168.1.8:8000
+
+
+-> 이러면
+관리자 GUI에서 핑키 status가 실시간 갱신된다.
